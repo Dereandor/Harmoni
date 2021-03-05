@@ -1,0 +1,44 @@
+image: node:8
+# Set up MySQL test-database
+services:
+  - mysql:5.5
+# Configure test-database
+variables:
+  MYSQL_DATABASE: supertestdb
+  MYSQL_ROOT_PASSWORD: secret
+
+build_client:
+  stage: build
+  script:
+    - cd client/
+    - npm install
+    - npm run build-prod
+    - cd ..
+
+test_server:
+  stage: test
+  script:
+    - cd server
+    - npm install
+    - npm test
+    - cd ..
+  artifacts:
+    paths:
+      - server/coverage/
+
+# Publish coverage report on gitlab-pages
+server_pages:
+  stage: deploy
+  dependencies:
+    - test_server
+  script:
+    - cd server/
+    - mkdir .public
+    - cp -r coverage/* .public
+    - mv .public ../public
+    - cd ..
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
